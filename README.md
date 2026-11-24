@@ -47,6 +47,11 @@ So does the long prompt. Reading a prompt handles many tokens in each pass over 
 - **Work alongside the CPU.** The Pi stays free while the HAT writes, and the HAT's model does not use the Pi's RAM. A background job can run on the HAT while the CPU answers you. I have not measured this yet.
 - **What the chip is designed for:** vision, and speech-to-text with Whisper. I have not tested these either. They are next for my agent.
 
+## Others who measured this
+
+- [Jeff Geerling](https://www.jeffgeerling.com/blog/2026/raspberry-pi-ai-hat-2) ran every model Hailo had released on an 8 GB Pi 5 and on the HAT, at launch. The CPU wrote faster. My numbers agree.
+- [Raspberry Pi's own article](https://www.raspberrypi.com/news/when-and-why-you-might-need-the-raspberry-pi-ai-hat-plus-2/) says the HAT helps most when the prompt is large and the answer is short. It gives 2,039 ms to the first token on the CPU against 320 ms on the Hailo-10H, for a 96-token prompt on Qwen2.5 1.5B. My long prompt agrees, on a 3B model.
+
 ## Run it yourself
 
 You need the Hailo runtime, Hailo's Model Zoo GenAI 5.1.1 with `hailo-ollama` running, and Ollama for the CPU side. [`docs/setup.md`](docs/setup.md) has every step and the problems I hit. Then:
