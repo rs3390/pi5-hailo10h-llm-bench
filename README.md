@@ -4,7 +4,7 @@
 
 On the same model, the AI HAT+ 2 writes at about half the speed of the Raspberry Pi 5's own CPU. It does leave the CPU almost idle while it writes.
 
-I run an agent on a Pi 5 (8 GB); I wrote about building it in [I built an agent and you can too!](https://raghavsagar.substack.com/p/i-built-an-agent-and-you-can-too) I bought the AI HAT+ 2 (the Hailo-10H chip, 40 TOPS, 8 GB of its own memory) hoping to move the agent's model onto it. This repo is the script I used to find out, `bench.py`, and what I found. Run it on your own Pi.
+I run an agent on a Pi 5 (8 GB); I wrote about building it in [I built a locally hosted AI Agent!](https://raghavsagar.substack.com/p/i-built-an-agent-and-you-can-too) I bought the AI HAT+ 2 (the Hailo-10H chip, 40 TOPS, 8 GB of its own memory) hoping to move the agent's model onto it. This repo is the script I used to find out, `bench.py`, and what I found. Run it on your own Pi.
 
 ## Results
 
@@ -23,7 +23,7 @@ The HAT was slower at both steps: reading the prompt, and writing the answer. My
 
 I also ran my agent's model, Qwen3 4B, on the CPU against Llama 3.2 3B on the HAT. Qwen wrote at 4.3 to 5.7 tokens a second. The HAT, running the smaller model, still wrote at 2.65.
 
-Every run, as the script printed it, is in [`results/`](results/).
+The tables the script wrote, with my notes on each run, are in [`results/`](results/).
 
 ## What I found along the way
 
@@ -33,11 +33,11 @@ Every run, as the script printed it, is in [`results/`](results/).
 4. **Ollama on the CPU remembers a prompt it has just read.** Runs 2 and 3 of a prompt reach the first token much faster than run 1 (0.80 s, then 0.24 s). The HAT does not do this. Compare first runs, which `bench.py` reports in their own column.
 5. **Tokens a second is not quite fair across two different models**, because each model cuts text into tokens differently. `bench.py` also reports words a second.
 
-## Why the HAT is slower
+## Why the HAT is slower: a hypothesis
 
-I expected 40 TOPS to beat four ARM cores. I realized that the speed limit for writing an answer is memory. To write each token, the model reads nearly all of its weights from memory once (Llama 3.2 3B at 4 bits is about 2 GB). So the limit is how fast the chip can read its memory (bigger model = more to read per token = fewer tokens a second). The TOPS figure matters more for camera work, where there is a lot of arithmetic for each byte read.
+I expected 40 TOPS to beat four ARM cores. I have not measured why it does not. My hypothesis is that the speed limit for writing an answer is memory, not arithmetic. To write each token, the model reads nearly all of its weights from memory once (Llama 3.2 3B at 4 bits is about 2 GB). So the limit would be how fast the chip can read its memory (bigger model = more to read per token = fewer tokens a second). The TOPS figure would matter more for camera work, where there is a lot of arithmetic for each byte read.
 
-Hailo's own page for Qwen3 1.7B on the Hailo-10H lists 4.72 tokens a second. That is about what the Pi 5's CPU gets from a model more than twice the size.
+Hailo's own page for Qwen3 1.7B on the Hailo-10H lists 4.72 tokens a second. That is about what the Pi 5's CPU gets from a model more than twice the size, which fits the hypothesis.
 
 ## What the HAT is still good for
 
@@ -53,7 +53,7 @@ python3 bench.py check --probe llama3.2:3b        # is the HAT there, and doing 
 python3 bench.py speed --cpu-model llama3.2:3b    # the same model on both
 ```
 
-Results are saved in `results/`. `--only hat` or `--only cpu` runs one side; `--runs 5` runs each prompt five times. `bench.py` needs Python 3.9 or later and nothing else. The tests run anywhere, with no Pi: `python3 -m unittest`
+Results are saved in `results/`. `--only hat` or `--only cpu` runs one side; `--runs 5` runs each prompt five times. `bench.py` needs Python 3.10 or later and nothing else. The tests run anywhere, with no Pi: `python3 -m unittest`
 
 ## Assumptions and limits
 

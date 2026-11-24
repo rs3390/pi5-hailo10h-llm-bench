@@ -147,6 +147,7 @@ class ChatTest(unittest.TestCase):
             bench.chat(host, "m", [], keep_alive="10m")
         finally:
             server.shutdown()
+            server.server_close()
         self.assertNotIn("keep_alive", bodies[0])
         self.assertEqual(bodies[1]["keep_alive"], "10m")
 

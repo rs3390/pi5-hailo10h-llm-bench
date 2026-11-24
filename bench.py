@@ -17,7 +17,7 @@ the evidence the HAT did the work.
 time to the first token, writing speed in tokens and in words a second, and
 processor load. A table goes to results/.
 
-Python 3.9 or later, standard library only. Processor load needs Linux.
+Python 3.10 or later, standard library only. Processor load needs Linux.
 MIT licence; see LICENSE.
 """
 
