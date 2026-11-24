@@ -151,6 +151,28 @@ class ChatTest(unittest.TestCase):
         self.assertNotIn("keep_alive", bodies[0])
         self.assertEqual(bodies[1]["keep_alive"], "10m")
 
+    def test_a_missing_model_says_how_to_get_it(self):
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                self.send_response(404)
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        server = HTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            with self.assertRaises(bench.ModelError) as caught:
+                bench.chat(f"http://127.0.0.1:{server.server_address[1]}", "llama3.2:3b", [])
+        finally:
+            server.shutdown()
+            server.server_close()
+        self.assertIn("ollama pull llama3.2:3b", str(caught.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

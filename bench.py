@@ -104,6 +104,10 @@ def chat(host: str, model: str, messages: list, *, options: Optional[dict] = Non
                         "read_tokens": chunk.get("prompt_eval_count", 0) or 0,
                     }
     except urllib.error.HTTPError as exc:
+        exc.close()  # it holds the server's reply open
+        if exc.code == 404:
+            raise ModelError(f"{model} is not on the server at {host}. Download it first: "
+                             f"`ollama pull {model}` for the CPU; docs/setup.md step 4 for the HAT") from exc
         raise ModelError(f"the model server answered with HTTP {exc.code}") from exc
     except urllib.error.URLError as exc:
         raise ModelError(f"cannot reach the model at {host}: {exc.reason}") from exc
@@ -239,7 +243,7 @@ def timed_chat(send: Callable, target: str, host: str, model: str, name: str, me
             reply = send(host, model, messages, options=options, keep_alive=keep_alive,
                          timeout=timeout, on_token=on_token)
         except Exception as exc:  # recorded, never fatal
-            result.error = str(exc)[:120]
+            result.error = str(exc)[:200]
             reply = None
     result.total = round(time.monotonic() - started, 1)
     result.load = watch.load
@@ -420,8 +424,13 @@ def speed(cpu_model: str, hat_model: str, runs: int, only: str, out_dir: Path, s
     for target, host, model in targets:
         alive = "10m" if target == "cpu" else None  # hailo-ollama answers 500 to keep_alive "10m"
         print(f"{target}: {model} — warming up", flush=True)
-        timed_chat(send, target, host, model, "warm-up", prompts()[0][1], options=options,
-                   keep_alive=alive, device=device, stat_path=stat_path)
+        warm = timed_chat(send, target, host, model, "warm-up", prompts()[0][1], options=options,
+                          keep_alive=alive, device=device, stat_path=stat_path)
+        if warm.error:  # no point timing a server that is not there
+            print(f"  skipped: {warm.error}", flush=True)
+            results.extend(Timing(target=target, model=model, prompt=name, error=warm.error)
+                           for name, _ in prompts())
+            continue
         for name, messages in prompts():
             for run in range(1, runs + 1):
                 t = timed_chat(send, target, host, model, name, messages, options=options, keep_alive=alive,
